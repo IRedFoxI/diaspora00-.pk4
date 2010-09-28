@@ -3296,6 +3296,18 @@
 				</File>
 			</Filter>
 		</Filter>
+		<Filter
+			Name="Diaspora"
+			>
+			<File
+				RelativePath=".\game\diaspora\DiasporaThread.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\game\diaspora\DiasporaThread.h"
+				>
+			</File>
+		</Filter>
 	</Files>
 	<Globals>
 	</Globals>

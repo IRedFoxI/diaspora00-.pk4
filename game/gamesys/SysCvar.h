@@ -402,7 +402,7 @@ extern idCVar	g_radialMenuStyle;
 
 extern idCVar	g_unlock_updateViewpos;
 extern idCVar	g_unlock_updateAngles;
-extern idCVar	g_unlock_interpolateMoving; 
+extern idCVar	g_unlock_interpolateMoving;
 extern idCVar	g_unlock_viewStyle;
 
 extern idCVar	gui_storeTextInfo;
@@ -453,5 +453,18 @@ extern idCVar	g_noTVChat;
 extern idCVar	g_trainingMode;
 
 extern idCVar	g_noQuickChats;
+
+// FORMIDO BEGIN
+#ifdef RF_DIASPORA_BUILD
+#if defined( __linux__ )
+
+extern idCVar   g_mySQLServer;
+extern idCVar   g_mySQLUsername;
+extern idCVar   g_mySQLPassword;
+extern idCVar   si_diasporaServerId;
+
+#endif /* __linux__ */
+#endif /* RF_DIASPORA_BUILD */
+// FORMIDO END
 
 #endif /* !__SYS_CVAR_H__ */

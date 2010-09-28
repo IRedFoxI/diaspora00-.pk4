@@ -101,6 +101,12 @@ idCVar* idCVar::staticVars;
 #include "botai/BotThreadData.h"
 #include "botai/Bot.h"
 
+// FORMIDO BEGIN
+#ifdef RF_DIASPORA_BUILD
+#include "diaspora/DiasporaThread.h"
+#endif /* RF_DIASPORA_BUILD */
+// FORMIDO END
+
 #include "misc/ProfileHelper.h"
 #include "AntiLag.h"
 
@@ -273,7 +279,7 @@ sdPlayZone::sdPlayZone( const idDict& info, const idBounds& bounds ) {
 	}
 	if ( info.GetBool( "zone_vehicle_route" ) ) {
 		_flags	|= PZF_VEHICLEROUTE;
-	}	
+	}
 	if ( info.GetBool( "zone_world" ) ) {
 		_flags	|= PZF_WORLD;
 	}
@@ -826,7 +832,7 @@ void idGameLocal::Clear( void ) {
 	unlock.maxAngles.Set( 180.0f, 180.0f, 180.0f );
 
 	nextBotPopulationCheck = 0;
-	
+
 	useSimpleEffect = bse_simple.GetBool();
 }
 
@@ -938,7 +944,7 @@ void WinPureCallHandler( void ) {
 }
 
 class idCVarCallback_TeamForceBalanceChanged_BotControl : public idCVarCallback {
-public:	
+public:
 	~idCVarCallback_TeamForceBalanceChanged_BotControl() {
 		si_teamForceBalance.UnRegisterCallback( this );
 	}
@@ -980,7 +986,7 @@ public:
 	}
 
 	idCVar* _watch;
-}	g_updateNumGDF_BotControl( bot_uiNumGDF ), 
+}	g_updateNumGDF_BotControl( bot_uiNumGDF ),
 	g_updateNumStrogg_BotControl( bot_uiNumStrogg );
 
 class idCVarCallback_ServerInfoDirectSet : public idCVarCallback {
@@ -1004,9 +1010,9 @@ public:
 	}
 
 	idCVar* _watch;
-}	g_updateTimeLimit( si_timeLimit ), 
-	g_updateMaxPlayer( si_maxPlayers ), 
-	g_updatePrivateClients( si_privateClients ), 
+}	g_updateTimeLimit( si_timeLimit ),
+	g_updateMaxPlayer( si_maxPlayers ),
+	g_updatePrivateClients( si_privateClients ),
 	g_updateTeamForceBalance( si_teamForceBalance ),
 	g_updateAdminStart( si_adminStart ),
 	g_updateMinPlayers( si_minPlayers ),
@@ -1490,7 +1496,7 @@ void idGameLocal::Init( void ) {
 
 		uiMainMenuHandle	= LoadUserInterface( "mainmenu",	false, true );
 		uiSystemUIHandle	= LoadUserInterface( "system",		false, true );
-		pureWaitHandle		= LoadUserInterface( "purewait",	false, true );		
+		pureWaitHandle		= LoadUserInterface( "purewait",	false, true );
 
 		if( sdUserInterfaceLocal* systemUI = GetUserInterface( uiSystemUIHandle ) ) {
 			systemUI->Activate();
@@ -1501,7 +1507,7 @@ void idGameLocal::Init( void ) {
 
 	g_commandMapZoomCvarCallback.Register();
 
-	com_unlockFPS = cvarSystem->Find( "com_unlockFPS" );	
+	com_unlockFPS = cvarSystem->Find( "com_unlockFPS" );
 
 	// Ensure dynamic items are precached
 	TouchMedia();
@@ -1969,7 +1975,7 @@ void idGameLocal::Shutdown( void ) {
 
 	fileSystem->FreeAddonMetaDataList( mapMetaDataList );
 	mapMetaDataList = NULL;
-	
+
 	fileSystem->FreeAddonMetaDataList( campaignMetaDataList );
 	campaignMetaDataList = NULL;
 
@@ -2461,7 +2467,7 @@ idGameLocal::ParseServerInfo
 ============
 */
 void idGameLocal::ParseServerInfo( void ) {
-	serverInfoData.timeLimit			= Max( 0, MINS2MS( serverInfo.GetFloat( "si_timeLimit" ) ) );	
+	serverInfoData.timeLimit			= Max( 0, MINS2MS( serverInfo.GetFloat( "si_timeLimit" ) ) );
 	serverInfoData.adminStart			= serverInfo.GetBool( "si_adminStart" );
 	serverInfoData.noProficiency		= serverInfo.GetBool( "si_noProficiency" );
 	serverInfoData.votingDisabled		= serverInfo.GetBool( "si_disableVoting" );
@@ -2509,7 +2515,7 @@ void idGameLocal::LoadMap( const char* mapName, int randSeed, int startTime ) {
 
 	gameLocal.declEntityDefType[ "player_edf" ];
 	gameLocal.declEntityDefType[ "bot_edf" ];
-	
+
 	if ( !reloadingSameMap ) {
 		OnNewMapLoad( mapName );
 	} else {
@@ -2561,7 +2567,7 @@ void idGameLocal::LoadMap( const char* mapName, int randSeed, int startTime ) {
 	if ( mapFile != NULL && gameLocal.isServer ) {
 		gameLocal.Printf( "----------- Loading Map AAS ------------\n" );
 		botThreadData.LoadMap( mapName, randSeed );
-		botThreadData.InitAAS( mapFile ); //mal: load the AAS for this map, if the mapfile was loaded. 
+		botThreadData.InitAAS( mapFile ); //mal: load the AAS for this map, if the mapfile was loaded.
 	}
 
 	// load the collision map
@@ -2670,6 +2676,14 @@ void idGameLocal::LocalMapRestart( void ) {
 
 	botThread->StopThread();
 
+// FORMIDO BEGIN
+#ifdef RF_DIASPORA_BUILD
+    if ( gameLocal.isServer ) {
+            diasporaThread->StopThread();
+    }
+#endif /* RF_DIASPORA_BUILD */
+// FORMIDO END
+
 	gamestate = GAMESTATE_SHUTDOWN;
 
 	idStr currentSpawnPoints[ MAX_CLIENTS ];
@@ -2693,13 +2707,13 @@ void idGameLocal::LocalMapRestart( void ) {
 
 	if ( mapFile != NULL && gameLocal.isServer ) {
 		botThreadData.LoadMap( mapFile->GetName(), sys->Milliseconds() );
-		botThreadData.InitAAS( mapFile ); //mal: load the AAS for this map, if the mapfile was loaded. 
+		botThreadData.InitAAS( mapFile ); //mal: load the AAS for this map, if the mapfile was loaded.
 	}
 
 	OnPreMapStart();
 	SpawnMapEntities();
 	OnMapStart();
-	
+
 	if ( botMapFile != NULL ) {
  		botThreadData.LoadActions( botMapFile ); //mal: load any bot actions for this map, if the bot entities were loaded.
 
@@ -2737,6 +2751,14 @@ void idGameLocal::LocalMapRestart( void ) {
 	botThreadData.ResetBotsInfo();
 
 	botThread->StartThread();
+// FORMIDO BEGIN
+#ifdef RF_DIASPORA_BUILD
+    if ( gameLocal.isServer ) {
+            gameLocal.Printf( "----------- Starting Diaspora Thread ------------\n" );
+            diasporaThread->StartThread();
+    }
+#endif /* RF_DIASPORA_BUILD */
+// FORMIDO END
 	renderSystem->UnlockThreads();
 
 	doingMapRestart = false;
@@ -2990,6 +3012,14 @@ void idGameLocal::InitFromNewMap( const char* mapName, idRenderWorld *renderWorl
 
 	botThread->StopThread();
 
+// FORMIDO BEGIN
+#ifdef RF_DIASPORA_BUILD
+    if ( gameLocal.isServer ) {
+            diasporaThread->StopThread();
+    }
+#endif /* RF_DIASPORA_BUILD */
+// FORMIDO END
+
 	this->isServer = isServer;
 	this->isClient = isClient;
 	localViewChangedTime = 0;
@@ -3066,7 +3096,7 @@ void idGameLocal::InitFromNewMap( const char* mapName, idRenderWorld *renderWorl
 	if ( botMapFile != NULL ) {
         gameLocal.Printf( "----------- Loading Map Bot Actions ------------\n" );
 		botThreadData.LoadActions( botMapFile ); //mal: load any bot actions for this map, if the bot entities were loaded.
-		
+
 		if ( gameLocal.isServer ) {
 			botThreadData.LoadRoutes( botMapFile ); //mal: load any bot routes for this map, if the bot entities were loaded.
 
@@ -3083,6 +3113,15 @@ void idGameLocal::InitFromNewMap( const char* mapName, idRenderWorld *renderWorl
 	gamestate = GAMESTATE_ACTIVE;
 
 	botThread->StartThread();
+
+// FORMIDO BEGIN
+#ifdef RF_DIASPORA_BUILD
+    if ( gameLocal.isServer ) {
+            gameLocal.Printf( "----------- Starting Diaspora Thread ------------\n" );
+            diasporaThread->StartThread();
+    }
+#endif /* RF_DIASPORA_BUILD */
+// FORMIDO END
 
 	hasTakenScoreShot = false;
 
@@ -3197,6 +3236,14 @@ void idGameLocal::MapShutdown( void ) {
 
 	botThread->StopThread();
 	botThreadData.Clear( true );
+
+// FORMIDO BEGIN
+#ifdef RF_DIASPORA_BUILD
+    if ( gameLocal.isServer ) {
+            diasporaThread->StopThread();
+    }
+#endif /* RF_DIASPORA_BUILD */
+// FORMIDO END
 
 #if !defined( SD_DEMO_BUILD )
 	FreeClientStatsRequestTask();
@@ -3347,7 +3394,7 @@ void idGameLocal::DumpOggSounds() {
 	}
 
 	idFile* pyFile = fileSystem->OpenFileWrite( "makeogg.py" );
-	
+
 	// write generic code
 	pyFile->WriteFloatString( "#!/usr/bin/env python\n\n" );
 
@@ -3741,7 +3788,7 @@ void idGameLocal::SpawnPlayer( int clientNum, bool isBot ) {
 
 	if ( isBot ) {
 		args.Set( "classname", "bot_edf" );
-		botThreadData.SetupBotInfo( clientNum ); 
+		botThreadData.SetupBotInfo( clientNum );
 	} else {
 		args.Set( "classname", "player_edf" );
 		botThreadData.GetGameWorldState()->clientInfo[ clientNum ].isBot = false;
@@ -3800,7 +3847,7 @@ idPlayer* idGameLocal::GetLocalViewPlayer( void ) const {
 idGameLocal::DoClientSideStuff
 ================
 */
-bool idGameLocal::DoClientSideStuff() const { 
+bool idGameLocal::DoClientSideStuff() const {
 	return !networkSystem->IsDedicated();
 }
 
@@ -3814,7 +3861,7 @@ void idGameLocal::OnLocalViewPlayerChanged( void ) {
 	sdObjectiveManager::GetInstance().OnLocalViewPlayerChanged();
 	localViewChangedTime = realClientTime;
 	playerView.ClearEffects();
-	
+
 	ResetTeamAssets();
 
 	idPlayer* player = GetLocalViewPlayer();
@@ -4107,7 +4154,7 @@ idGameLocal::ControlBotPopulation
 ===============
 */
 void idGameLocal::ControlBotPopulation( void ) {
-	
+
 	if( !gameLocal.isServer ) {
 		return;
 	}
@@ -4409,7 +4456,7 @@ void idGameLocal::RunFrame( const usercmd_t *clientCmds, int elapsedTime ) {
 
 		timer_events.Stop();
 
-		sdTeamManager::GetInstance().Think(); 
+		sdTeamManager::GetInstance().Think();
 		sdTaskManager::GetInstance().Think();
 		sdFireTeamManager::GetInstance().Think();
 		sdObjectiveManager::GetInstance().Think();
@@ -4590,7 +4637,7 @@ void idGameLocal::FinishClientStatsRequest( void ) {
 
 	clientRanks[ clientStatsRequestIndex ].calculated = true;
 
-	sdNetErrorCode_e errorCode = clientStatsRequestTask->GetErrorCode();	
+	sdNetErrorCode_e errorCode = clientStatsRequestTask->GetErrorCode();
 	if ( errorCode != SDNET_NO_ERROR ) {
 		if ( g_debugStatsSetup.GetBool() ) {
 			gameLocal.Printf( "Stats Request Task Failed for client %d\n", clientStatsRequestIndex );
@@ -4617,7 +4664,7 @@ idGameLocal::StartClientStatsRequest
 */
 bool idGameLocal::StartClientStatsRequest( int clientIndex ) {
 	sdNetClientId clientId;
-	networkSystem->ServerGetClientNetId( clientIndex, clientId );	
+	networkSystem->ServerGetClientNetId( clientIndex, clientId );
 	if ( clientId.IsValid() ) {
 		clientStatsHash[ clientIndex ].Clear();
 		clientStatsRequestTask = networkService->GetStatsManager().ReadDictionary( clientId, clientStatsList[ clientIndex ] );
@@ -4928,7 +4975,7 @@ void idGameLocal::ClientUpdateView( const usercmd_t &cmd, int timeLeft ) {
 					guiSurface->GetRenderable().GetPosition( unlock.weaponGUIOrigin, unlock.weaponGUIAxis );
 					gotOne = true;	// safe check single GUI
 				}
-			}	
+			}
 
 			unlock.doWeapon = true;
 		} else {
@@ -5857,7 +5904,7 @@ void idGameLocal::SpawnMapEntities( void ) {
 		}
 		if( showUpdate && i % 25 == 0 ) {
 			locArgs[ 0 ] = va( L"%0.f", ( static_cast< float >( i ) / numMapEntities ) * 100.0f );
-			
+
 			UpdateLevelLoadScreen( common->LocalizeText( "guis/mainmenu/loading/spawning_entities", locArgs ).c_str() );
 			common->PacifierUpdate();
 		}
@@ -6260,7 +6307,7 @@ void idGameLocal::RadiusDamage( const idVec3 &origin, idEntity *inflictor, idEnt
 		numListedEntities = clip.EntitiesTouchingBounds( bounds, -1, entityList, MAX_GENTITIES );
 
 		// Gordon: Store the bounds as they were when we started, as the damage could cause shifts, due to players being knocked out of vehicles
-		for ( int e = 0; e < numListedEntities; e++ ) {			
+		for ( int e = 0; e < numListedEntities; e++ ) {
 			entityBounds[ e ] = entityList[ e ]->GetPhysics()->GetAbsBounds();
 		}
 
@@ -7856,8 +7903,8 @@ bool idGameLocal::RequestDeployment( idPlayer* player, const sdDeclDeployableObj
 	idVec3 end = start - idVec3( 0.0f, 0.0f, 2048.0f );
 	trace_t trace;
 	clip.TracePoint( CLIP_DEBUG_PARMS trace, start, end, CONTENTS_SOLID | CONTENTS_VEHICLECLIP | CONTENTS_BODY | CONTENTS_MONSTER, player );
-	
-	// if the endpos is significantly higher then the request position then 
+
+	// if the endpos is significantly higher then the request position then
 	// it may be that the requester did it from under cover
 	if ( trace.endpos.z > position.z + 64.0f ) {
 		trace.endpos = position;
@@ -7899,7 +7946,7 @@ void idGameLocal::RunFrame() {
 #ifdef _XENON
 	liveManager->RunFrame();
 #else
-	
+
 	// system notifications are in a static list that's reset to num 0 every frame
 	// this ensures that the pointers are valid when the notifications are picked up below during sdnet.RunFrame
 	sdnet.RunFrame();
@@ -8388,14 +8435,14 @@ void idGameLocal::LogDebugText( const idEntity* entityFrom, const char* fmt, ...
 		idStr::vsnPrintf( text, sizeof( text ), fmt, argptr );
 		va_end( argptr );
 
-		// add some interesting 
+		// add some interesting
 		debugLogFile->Printf( "%i, ", time );
 		if ( entityFrom != NULL ) {
 			debugLogFile->Printf( "%i, ", entityFrom->entityNumber );
 		} else {
 			debugLogFile->Printf( "-1, " );
 		}
-		
+
 		debugLogFile->Printf( "\"%s\"\n", text );
 	}
 }
@@ -8690,7 +8737,7 @@ userCmdString_t	userCmdStrings[] = {
 	{ "_tophat",			B_BUTTON,	UB_TOPHAT },
 	{ "_leanLeft",			B_BUTTON,	UB_LEANLEFT },
 	{ "_leanRight",			B_BUTTON,	UB_LEANRIGHT },
-	
+
 	{ "_weapon0",			B_IMPULSE,	UCI_WEAP0 },
 	{ "_weapon1",			B_IMPULSE,	UCI_WEAP1 },
 	{ "_weapon2",			B_IMPULSE,	UCI_WEAP2 },
@@ -8943,7 +8990,7 @@ void idGameLocal::HandleLocalImpulse( int action, bool down ) {
 						if ( contextMenu->Enabled() ) {
 							contextMenu->Enable( false );
 						} else {
-							contextMenu->Enable( true, true );							
+							contextMenu->Enable( true, true );
 						}
 					}
 				}
@@ -9003,7 +9050,7 @@ void idGameLocal::HandleLocalImpulse( int action, bool down ) {
 		case ULI_MENU_EVENT_GENERAL3:
 		case ULI_MENU_EVENT_GENERAL4:
 		case ULI_MENU_EVENT_GENERAL5:
-		case ULI_MENU_EVENT_GENERAL6: 
+		case ULI_MENU_EVENT_GENERAL6:
 		case ULI_MENU_EVENT_NAV_FORWARD:
 		case ULI_MENU_EVENT_NAV_BACKWARD:
 		case ULI_MENU_EVENT_ACCEPT:
@@ -9013,7 +9060,7 @@ void idGameLocal::HandleLocalImpulse( int action, bool down ) {
 				const sdSysEvent* event = sys->GenerateGuiEvent( action );
 				gameLocal.HandleGuiEvent( event );
 				sys->FreeEvent( event );
-			}			
+			}
 			break;
 		}
 
@@ -9208,7 +9255,7 @@ void idGameLocal::MessageBox( msgBoxType_t type, const wchar_t* message, const s
 		gameLocal.Warning( "idGameLocal::MessageBox: Couldn't find global 'messageBox' scope in guiGlobals." );
 		return;
 	}
-			
+
 	if( sdProperty* property = scope->GetProperty( "message", PT_WSTRING )) {
 		*property->value.wstringValue = message;
 	}
@@ -9335,7 +9382,7 @@ bool idGameLocal::DoSkyCheck( const idVec3& location ) const {
 	return ( trace.c.material->GetSurfaceFlags() & SURF_NOIMPACT ) != 0;
 /*
 	// TWTODO: Check that this functions correctly
-	
+
 	const sdPlayZone* playZoneHeight = gameLocal.GetPlayZone( location, sdPlayZone::PZF_HEIGHTMAP );
 	if ( playZoneHeight == NULL ) {
 		return false;
@@ -10016,7 +10063,7 @@ bool idGameLocal::DownloadRequest( const char* IP, const char* guid, const char*
 					url = cvarSystem->GetCVarString( "net_httpServerBaseURL" );
 				}
 			}
-			
+
 			if ( matchAll ) {
 				url.AppendPath( pakList[ i ] );
 				reply += url;
@@ -10146,7 +10193,7 @@ void idGameLocal::GetDemoName( idStr& output ) {
 	mapStr.ReplaceChar( '/', '_' );
 	mapStr.ReplaceFirst( "maps_", "" );		// the maps tag is boring. die.
 	mapStr.StripFileExtension();
-	
+
 
 	output = g_autoDemoNameFormat.GetString();
 
@@ -10225,7 +10272,7 @@ void idGameLocal::GetScoreboardShotName( idStr& output ) {
 	} else {
 		name = "server";
 	}
-	
+
 	// just in case
 	name.ReplaceChar( '/', '_' );
 	name.ReplaceChar( '\\', '_' );
@@ -10237,7 +10284,7 @@ void idGameLocal::GetScoreboardShotName( idStr& output ) {
 	mapStr.ReplaceFirst( "maps_", "" );		// the maps tag is boring. die.
 	mapStr.ReplaceChar( '/', '_' );
 	mapStr.StripFileExtension();
-	
+
 
 	output = g_autoScreenshotNameFormat.GetString();
 

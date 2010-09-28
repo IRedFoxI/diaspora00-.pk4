@@ -515,6 +515,13 @@ const idEventDef EV_Player_SetCarryingObjective( "setCarryingObjective", '\0', D
 const idEventDef EV_Player_AddDamageEvent( "addDamageEvent", '\0', DOC_TEXT( "Add a damage event for the player." ), 4, NULL, "d", "time", "Time for event.", "f", "dir", "Direction for the damage event.", "f", "damage", "Amount of damage done.", "b", "update", "Continually update direction." );
 const idEventDef EV_Player_IsInLimbo( "isInLimbo", 'b', DOC_TEXT( "Returns whether the player is currently in the limbo waiting to respawn." ), 0, NULL );
 
+// FORMIDO BEGIN
+#ifdef RF_DIASPORA_BUILD
+const idEventDef EV_Player_HopServer( "hopServer", '\0', DOC_TEXT( "Hop the player to a different server." ), 1, NULL, "d", "link", "Number of the link on this map the player is using to hop." );
+#endif /* RF_DIASPORA_BUILD */
+// FORMIDO END
+
+
 CLASS_DECLARATION( idActor, idPlayer )
 	EVENT( EV_Player_GetButton,				idPlayer::Event_GetButton )
 	EVENT( EV_Player_GetMove,				idPlayer::Event_GetMove )
@@ -677,6 +684,12 @@ CLASS_DECLARATION( idActor, idPlayer )
 	EVENT( EV_Player_AddDamageEvent,			idPlayer::Event_AddDamageEvent )
 	EVENT( EV_Player_IsInLimbo,					idPlayer::Event_IsInLimbo )
 
+// FORMIDO BEGIN
+#ifdef RF_DIASPORA_BUILD
+    EVENT( EV_Player_HopServer,                 idPlayer::Event_HopServer )
+#endif /* RF_DIASPORA_BUILD */
+// FORMIDO END
+
 END_CLASS
 
 /*
@@ -795,6 +808,12 @@ idPlayer::idPlayer( void ) {
 	playerFlags.manualTaskSelection	= false;
 	playerFlags.ready				= false;
 	playerFlags.carryingObjective	= false;
+// FORMIDO BEGIN
+#ifdef RF_DIASPORA_BUILD
+    isHopping	                    = false;
+    wantsHop	                    = false;
+#endif /* RF_DIASPORA_BUILD */
+// FORMIDO END
 	spawnAngles						= ang_zero;
 	viewAngles						= ang_zero;
 	cmdAngles						= ang_zero;
@@ -1257,6 +1276,13 @@ void idPlayer::Init( bool setWeapon ) {
 
 	playerFlags.carryingObjective	= false;
 
+// FORMIDO BEGIN
+#ifdef RF_DIASPORA_BUILD
+    isHopping	                    = false;
+    wantsHop	                    = false;
+#endif /* RF_DIASPORA_BUILD */
+// FORMIDO END
+
 	armor							= 0.f;
 
 	nextTeleportTime				= 0;
@@ -1510,7 +1536,7 @@ void idPlayer::Revive( idPlayer* other, float healthScale ) {
 				idVec3 end = org + sweepOffset + reachableOffset;
 				trace_t trace;
 				gameLocal.clip.TracePoint( trace, start, end, MASK_PLAYERSOLID & ( ~CONTENTS_SLIDEMOVER ), this );
-				if ( trace.fraction < 1.0f ) { 
+				if ( trace.fraction < 1.0f ) {
 					// can't reach it
 //					gameRenderWorld->DebugBounds( colorRed, clipModel->GetBounds(), org + sweepOffset, mat3_identity, 10000 );
 					continue;
@@ -1832,7 +1858,7 @@ void idPlayer::SpawnToolTip( const sdDeclToolTip* toolTip, sdToolTipParms* toolT
 	if ( demoState == sdDemoManagerLocal::DS_PAUSED || demoState == sdDemoManagerLocal::DS_PLAYING ) {
 		return;
 	}
-	
+
 	if ( gameLocal.localClientNum != entityNumber || !toolTip || toolTip == currentToolTip ) {
 		return;
 	}
@@ -2651,7 +2677,7 @@ void idPlayer::SpawnToPoint( const idVec3& spawnOrigin, const idAngles& spawnAng
 			botThreadData.GetGameWorldState()->clientInfo[ entityNumber ].backPedalTime = gameLocal.time + SPAWN_CONSIDER_TIME;
 		}
 	}
-	
+
 	ResetAntiLag();
 
 	suppressPredictionReset = false;
@@ -2673,7 +2699,7 @@ void idPlayer::UserInfoChanged( void ) {
 	if ( oldName.Length() > 0 && userInfo.rawName.Length() > 0 ) {
 		if ( oldName.Icmp( userInfo.rawName ) != 0 ) {
 			gameLocal.OnUserNameChanged( this, oldName, userInfo.rawName );
-			
+
 			idWStrList args( 2 );
 			args.Append( va( L"%hs", oldFullName.c_str() ) );
 			args.Append( va( L"%hs", userInfo.rawName.c_str() ) );
@@ -4062,7 +4088,7 @@ void idPlayer::SelectWeapon( int num, bool force ) {
 	if ( weapon != -1 ) {
 		if ( num == unpauseWeaponSlot && gameLocal.isPaused && gameLocal.isServer ) {
 			lastWeaponSwitchPos = -1;
-			cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "unPauseGame\n" ); 
+			cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "unPauseGame\n" );
 		}
 
 		GetInventory().SetSwitchingWeapon( weapon );
@@ -4787,7 +4813,7 @@ idPlayer* idPlayer::GetNextSpectateClient( bool reverse ) const {
 				return player;
 			}
 
-			// attempt to find the first person 
+			// attempt to find the first person
 			temp = -1;
 			if ( reverse ) {
 				temp = MAX_CLIENTS;
@@ -7226,12 +7252,12 @@ void idPlayer::CalcLifeStats( void ) {
 	if ( gameLocal.isClient ) {
 		return;
 	}
-	if ( team != NULL && 
-		gameLocal.rules->GetState() == sdGameRules::GS_GAMEON && 
-		!gameLocal.IsDoingMapRestart() && 
+	if ( team != NULL &&
+		gameLocal.rules->GetState() == sdGameRules::GS_GAMEON &&
+		!gameLocal.IsDoingMapRestart() &&
 		( gameLocal.GetLocalPlayer() == NULL || !g_trainingMode.GetBool() ) // Gordon: training mode only applies here when using a listen server
 		) {
-		
+
 		sdStatsTracker& tracker = sdGlobalStatsTracker::GetInstance();
 		const idList< lifeStat_t >& lifeStats = gameLocal.lifeStats;
 
@@ -7574,7 +7600,7 @@ float idPlayer::GetDamageScaleForTrace( const trace_t& t, const idVec3& traceDir
 	// do the head check
 	idVec3 headModelCenter;
 	GetHeadModelCenter( headModelCenter );
-	
+
 	const idClipModel* headModel = physicsObj.GetHeadClipModel();
 	if ( headModel != NULL && headModel->IsLinked() ) {
 		// see if the trace would hit the head model
@@ -7679,7 +7705,7 @@ void idPlayer::CalcDamagePoints( idEntity *inflictor, idEntity *attacker, const 
 	locationDamageArea_t area = LDA_INVALID;
 	if ( !noScale ) {
 		float scale = ( 1.f - armor ) * damageScale;
-		
+
 		if ( collision != NULL && !gameLocal.isClient && damageDecl->GetCanHeadshot() ) {
 			scale *= GetDamageScaleForTrace( *collision, dir, area );
 		}
@@ -8061,7 +8087,7 @@ void idPlayer::Damage( idEntity *inflictor, idEntity *attacker, const idVec3 &di
 	if ( !attacker ) {
 		attacker = gameLocal.world;
 	}
-	
+
 	bool headshot = false;
 	CalcDamagePoints( inflictor, attacker, damageDecl, damageScale, collision, damage, dir, headshot );
 
@@ -8645,7 +8671,7 @@ void idPlayer::UpdatePausedObjectiveView() {
 		// clear out roll
 		idAngles nowAngles = nowQuat.ToAngles();
 		nowAngles.roll = 0.0f;
-		
+
 		SetViewAngles( nowAngles );
 		firstPersonViewAxis = nowAngles.ToMat3();
 	}
@@ -8764,7 +8790,7 @@ bool idPlayer::IsFPSUnlock( void ) {
 	if ( this != localPlayer ) {
 		return false;
 	}
-	
+
 	if ( localViewPlayer == NULL ) {
 		return false;
 	}
@@ -8794,11 +8820,11 @@ bool idPlayer::IsFPSUnlock( void ) {
 	if ( ( viewPlayer == localPlayer ) && gameLocal.localPlayerProperties.GetDeployMenu()->Active() ) {
 		return false;
 	}
-	
+
 	if ( pm_thirdPerson.GetBool() ) {
 		return false;
 	}
-	
+
 	if ( this == localViewPlayer ) {
 		if ( viewPlayer->IsDead() ) {
 			return false;
@@ -8953,7 +8979,7 @@ void idPlayer::CalculateRenderView( void ) {
 			viewPlayer->OffsetThirdPersonView( pm_deathThirdPersonAngle.GetFloat(), pm_deathThirdPersonRange.GetFloat(), pm_deathThirdPersonHeight.GetFloat(), pm_thirdPersonClip.GetBool(), renderView );
 			gameLocal.CalcFov( CalcFov(), renderView.fov_x, renderView.fov_y );
 			return;
-		} 
+		}
 	}
 
 	// Standard view
@@ -9636,7 +9662,7 @@ idPlayer::ClientReceiveEvent
 bool idPlayer::ClientReceiveEvent( int event, int time, const idBitMsg& msg ) {
 	switch ( event ) {
 		case EVENT_RESPAWN: {
-			idVec3 org;			
+			idVec3 org;
 			org[ 0 ] = msg.ReadFloat( PLAYER_ORIGIN_EXPONENT_BITS, PLAYER_ORIGIN_MANTISSA_BITS );
 			org[ 1 ] = msg.ReadFloat( PLAYER_ORIGIN_EXPONENT_BITS, PLAYER_ORIGIN_MANTISSA_BITS );
 			org[ 2 ] = msg.ReadFloat( PLAYER_ORIGIN_EXPONENT_BITS, PLAYER_ORIGIN_MANTISSA_BITS );
@@ -13733,7 +13759,7 @@ void idPlayer::Event_SetBotEscort( idEntity* botEscort ) {
 		if ( botPlayer.classType == COVERTOPS && botPlayer.isDisguised ) {
 			botThreadData.bots[ botEscort->entityNumber ]->Bot_AddDelayedChat( botEscort->entityNumber, IM_DISGUISED, 3, true );
 			return;
-		} 
+		}
 
 		botThreadData.GetGameWorldState()->clientInfo[ entityNumber ].escortSpawnID = gameLocal.GetSpawnId( botEscort );
 		botThreadData.GetGameWorldState()->clientInfo[ entityNumber ].escortRequestTime = gameLocal.time;
@@ -14506,7 +14532,7 @@ void idPlayer::UpdatePlayerInformation( void ) {
 		} else {
 			clientInfo.usingMountedGPMG = true;
 			clientInfo.mountedGPMGEntNum = GetProxyEntity()->entityNumber;
-		}		
+		}
 	}
 
 	if ( gun != NULL ) {
@@ -15172,9 +15198,9 @@ void idPlayer::GetAORView( idVec3& origin, idMat3& axis ) {
 idPlayer::GetLastPredictionErrorDecayOrigin
 ================
 */
-const idVec3& idPlayer::GetLastPredictionErrorDecayOrigin( void ) { 
+const idVec3& idPlayer::GetLastPredictionErrorDecayOrigin( void ) {
 	if ( gameLocal.isClient ) {
-		return predictionErrorDecay_Origin.GetLastReturned(); 
+		return predictionErrorDecay_Origin.GetLastReturned();
 	} else {
 		return renderEntity.origin;
 	}
@@ -15243,7 +15269,7 @@ void idPlayer::UpdateBriefingView() {
 
 				idAngles nowAngles = nowQuat.ToAngles();
 				nowAngles.roll = 0.0f;
-		
+
 				SetViewAngles( nowAngles );
 				firstPersonViewAxis = nowAngles.ToMat3();
 			}
@@ -15252,3 +15278,136 @@ void idPlayer::UpdateBriefingView() {
 		}
 	}
 }
+
+// FORMIDO BEGIN
+#ifdef RF_DIASPORA_BUILD
+
+/*
+================
+idPlayer::HopServer
+================
+*/
+void idPlayer::HopServer( void ) {
+        // FIXME: RedFox: Write to DB so receiving server knows where to spawn the player.
+
+        // FIXME: RedFox: Reset variables when returning if necesary
+        isHopping = true;
+        wantsHop = false;
+
+        sdNetClientId clientId;
+        networkSystem->ServerGetClientNetId( this->entityNumber, clientId );
+        if ( !clientId.IsValid() ) {
+                // FIXME: RedFox: Don't reference gameLocal in thread if you don't have to.
+                gameLocal.Warning( "Invalid ClientID" );
+                // FIXME: RedFox: Commented out for testing purposes. Remove commenting!
+                // return;
+        }
+        // FIXME: RedFox: For testing purposes only. Remove!
+        gameLocal.Printf( "ClientID: %d %d \n", clientId.id[0], clientId.id[1] );
+
+        // initialize variables
+
+        idStr newServerIP;
+        idStr newServerPort;
+
+#if defined( __linux__ )
+
+		MYSQL *conn;
+        MYSQL_RES *result;
+        MYSQL_ROW row;
+
+        char *server = g_mySQLServer.GetString();
+        char *user = g_mySQLUsername.GetString();
+        char *password = g_mySQLPassword.GetString();
+        char *database = "diaspora";
+
+        conn = mysql_init( NULL );
+
+        // Connect to database
+        if ( !mysql_real_connect( conn, server, user, password, database, 0, NULL, 0 ) ) {
+                gameLocal.Warning( "%s\n", mysql_error( conn ) );
+                diasporaThread->SignalDiasporaThread();
+                isHopping = false;
+                // wantsHop = true; // FIXME: RedFox: Reschedule hop, but how many times?
+                return;
+        }
+
+        char *serverId = si_diasporaServerId.GetString();
+
+        idStr query = "SELECT INET_NTOA(ServerIP), ServerPort FROM Servers, Links WHERE ServerID1=";
+        query += serverId;
+        query += " AND LinkNr1=";
+        query += linkNrSelected;
+        query += " AND ServerID2=ServerID OR ServerID2=";
+        query += serverId;
+        query += " AND LinkNr2=";
+        query += linkNrSelected;
+        query += " AND ServerID1=ServerID";
+
+        // send SQL query
+        if ( mysql_query( conn, query.c_str() ) ) {
+                gameLocal.Warning( "%s - aborting\n", mysql_error( conn ) );
+                diasporaThread->SignalDiasporaThread();
+                isHopping = false;
+                // wantsHop = true; // FIXME: RedFox: Reschedule hop, but how many times?
+                return;
+        }
+
+        result = mysql_use_result( conn );
+
+        // get query result
+        unsigned int num_fields;
+        num_fields = mysql_num_fields(result);
+
+        while ( ( row = mysql_fetch_row( result ) ) != NULL ) {
+                if ( !newServerIP.IsEmpty() && !newServerPort.IsEmpty() ) {
+                        gameLocal.Warning( "Multiple matching link entries in database: using the last occurance\n" );
+                }
+
+                if ( num_fields == 2 ) {
+                        newServerIP = row[0];
+                        newServerPort = row[1];
+                }
+        }
+
+        // close connection
+        mysql_free_result( result );
+        mysql_close( conn );
+
+#endif /* __linux__ */
+
+		if ( newServerIP.IsEmpty() && newServerPort.IsEmpty() ) {
+                // FIXME: RedFox: Freeing hop too soon?
+                gameLocal.Printf( "This link is not connected: %d.\n", linkNrSelected );
+                isHopping = false;
+                return;
+        }
+
+        // FIXME: RedFox: Check if server full and send different message
+        sdReliableServerMessage msg( GAME_RELIABLE_SMESSAGE_HOP_SERVER );
+        msg.WriteString( newServerIP + ":" + newServerPort );
+        msg.Send( sdReliableMessageClientInfo( entityNumber ) );
+}
+/*
+================
+idPlayer::Event_HopServer
+================
+*/
+void idPlayer::Event_HopServer( int linkNr ) {
+        if ( !gameLocal.isServer ) {
+                return;
+        }
+
+        if( !isHopping ) {
+                diasporaThread->Lock();
+
+                linkNrSelected = linkNr;
+                wantsHop = true;
+
+                diasporaThread->UnLock();
+                diasporaThread->SignalDiasporaThread();
+        }
+}
+
+#endif /* RF_DIASPORA_BUILD */
+// FORMIDO END

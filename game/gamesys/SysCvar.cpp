@@ -139,12 +139,12 @@ idCVar g_disableVehicleSpawns(		"g_disableVehicleSpawns",	"0",			CVAR_GAME | CVA
 idCVar g_frametime(					"g_frametime",				"0",			CVAR_GAME | CVAR_BOOL, "displays timing information for each game frame" );
 //idCVar g_timeentities(				"g_timeEntities",			"0",			CVAR_GAME | CVAR_FLOAT, "when non-zero, shows entities whose think functions exceeded the # of milliseconds specified" );
 //idCVar g_timetypeentities(			"g_timeTypeEntities",		"",				CVAR_GAME, "" );
-	
+
 idCVar ai_debugScript(				"ai_debugScript",			"-1",			CVAR_GAME | CVAR_INTEGER, "displays script calls for the specified monster entity number" );
 idCVar ai_debugAnimState(			"ai_debugAnimState",		"-1",			CVAR_GAME | CVAR_INTEGER, "displays animState changes for the specified monster entity number" );
 idCVar ai_debugMove(				"ai_debugMove",				"0",			CVAR_GAME | CVAR_BOOL, "draws movement information for monsters" );
 idCVar ai_debugTrajectory(			"ai_debugTrajectory",		"0",			CVAR_GAME | CVAR_BOOL, "draws trajectory tests for monsters" );
-	
+
 idCVar g_kickTime(					"g_kickTime",				"1",			CVAR_GAME | CVAR_FLOAT, "" );
 idCVar g_kickAmplitude(				"g_kickAmplitude",			"0.0001",		CVAR_GAME | CVAR_FLOAT, "" );
 //idCVar g_blobTime(					"g_blobTime",				"1",			CVAR_GAME | CVAR_FLOAT, "" );
@@ -575,3 +575,12 @@ idCVar g_objectiveDecayTime(		"g_objectiveDecayTime",			"5",		CVAR_GAME | CVAR_F
 idCVar g_noQuickChats(				"g_noQuickChats",				"0",		CVAR_GAME | CVAR_BOOL | CVAR_ARCHIVE | CVAR_PROFILE,		"disables sound and text of quickchats" );
 
 idCVar g_maxProficiency(			"g_maxProficiency",				"0",		CVAR_GAME | CVAR_BOOL | CVAR_RANKLOCKED, "" );
+
+// FORMIDO BEGIN
+#ifdef RF_DIASPORA_BUILD
+idCVar g_mySQLServer(               "g_mySQLServer",				"formido.game-host.org",		CVAR_GAME | CVAR_ARCHIVE, "MySQL DB Server URL or IP." );
+idCVar g_mySQLUsername(			    "g_mySQLUsername",				"diaserver1",   CVAR_GAME | CVAR_ARCHIVE, "MySQL DB Username." );
+idCVar g_mySQLPassword(			    "g_mySQLPassword",				"mysecret",		CVAR_GAME | CVAR_ARCHIVE, "MySQL DB Password." );
+idCVar si_diasporaServerId(         "si_diasporaServerId",          "1",        CVAR_GAME | CVAR_ARCHIVE, "ID of the server for the Diaspora system." );
+#endif /* RF_DIASPORA_BUILD */
+// FORMIDO END
