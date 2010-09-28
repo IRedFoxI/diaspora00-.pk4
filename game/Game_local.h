@@ -191,7 +191,7 @@ const int MAX_BATTLESENSE_RANKS = 5;
 #endif
 
 // the "gameversion" client command will print this plus compile date
-#define	GAME_VERSION		"baseETQW-1"
+#define	GAME_VERSION		"diasporaETQW-1"
 
 const int NUM_RENDER_PORTAL_BITS	= idMath::BitsForInteger( PS_BLOCK_ALL );
 
