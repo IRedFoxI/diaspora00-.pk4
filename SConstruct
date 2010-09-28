@@ -288,6 +288,17 @@ GAMECPPFLAGS = [ ]
 BASELINKFLAGS = [ ]
 CORELINKFLAGS = [ ]
 
+# these defines are necessary to properly include the MySQL library -- added by =F=-RedFox-
+GAMECPPFLAGS.append( '-I/usr/include/mysql' )
+GAMECPPFLAGS.append( '-DBIG_JOINS=1' )
+GAMECPPFLAGS.append( '-fPIC' )
+
+BASELINKFLAGS.append( '-Wl,-Bsymbolic-functions' )
+BASELINKFLAGS.append( '-rdynamic' )
+BASELINKFLAGS.append( '-L/usr/lib/mysql' )
+BASELINKFLAGS.append( '-lmysqlclient' )
+
+
 # for release build, further optimisations that may not work on all files
 OPTCPPFLAGS = [ ]
 
