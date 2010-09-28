@@ -96,7 +96,7 @@ GL_HARDLINK (default 0)
 ID_NOLANADDRESS (default 0)
 	Don't recognize any IP as LAN address. This is useful when debugging network
 	code where LAN / not LAN influences application behaviour
-	
+
 ID_MCHECK (default 2)
 	Perform heap consistency checking
 	0: on in Debug / off in Release
@@ -140,10 +140,8 @@ OS = commands.getoutput( 'uname -s' )
 if ( OS == 'Linux' ):
 	cpu = commands.getoutput( 'uname -m' )
 	# when building in a 32 bit x86_64 chroot, make sure to use linux32 to remap properly
-	if ( cpu == 'i686' ):
+	if ( cpu == 'i686' or cpu == 'x86_64' ):
 		cpu = 'x86'
-	elif ( cpu == 'x86_64' ):
-		cpu = 'x64'
 	else:
 		cpu = 'cpu'
 elif ( OS == 'Darwin' ):
@@ -159,7 +157,7 @@ elif ( OS == 'Darwin' ):
 
 CC = 'gcc-4.1'
 CXX = 'g++-4.1'
-JOBS = '1'
+JOBS = '3'
 if ( not g_sdk ):
 	BUILD = 'debug'
 else:
@@ -302,11 +300,14 @@ CORECPPFLAGS.append( '-DXTHREADS' )
 BASECPPFLAGS.append( '-fmessage-length=0' )
 # gcc 4.0
 BASECXXFLAGS.append( '-fpermissive' )
+
 BASECXXFLAGS.append( '-fvisibility=hidden' )
 BASECXXFLAGS.append( '-fvisibility-inlines-hidden' )
 
 # so I can have 64 bit machines in the distcc array
 BASECPPFLAGS.append( '-m32' )
+# so we can link on 64 bit machines
+BASELINKFLAGS.append( '-m32' )
 
 if ( g_sdk ):
 	BASECPPFLAGS.append( '-DSD_SDK_BUILD' )
@@ -314,7 +315,7 @@ if ( g_sdk ):
 
 if ( BETA == '1' ):
 	CORECPPFLAGS.append( '-DSD_PUBLIC_BETA_BUILD' )
-	
+
 if ( BETA == '2' ):
 	CORECPPFLAGS.append( '-DSD_PRIVATE_BETA_BUILD' )
 
@@ -346,9 +347,6 @@ elif ( BUILD == 'release' or BUILD == 'release-test' ):
 		BASECPPFLAGS.append( '-DID_RELEASE_TEST' )
 		# this affects ability to obtain proper return adresses
 		OPTCPPFLAGS.remove( '-fomit-frame-pointer' )
-	else:
-		# TMP - let's skip this on release builds for now so we can get better crash reports
-		OPTCPPFLAGS.remove( '-fomit-frame-pointer' )
 else:
 	print 'Unknown build configuration ' + BUILD
 	sys.exit(0)
@@ -358,10 +356,10 @@ if ( GL_HARDLINK != '0' ):
 
 if ( ID_NOLANADDRESS != '0' ):
 	CORECPPFLAGS.append( '-DID_NOLANADDRESS' )
-	
+
 if ( ID_MCHECK == '1' ):
 	BASECPPFLAGS.append( '-DID_MCHECK' )
-	
+
 # create the build environements
 g_base_env = Environment( ENV = os.environ, CC = CC, CXX = CXX, LINK = LINK, CPPFLAGS = BASECPPFLAGS, CXXFLAGS = BASECXXFLAGS, LINKFLAGS = BASELINKFLAGS, CPPPATH = CORECPPPATH, LIBPATH = CORELIBPATH )
 scons_utils.SetupUtils( g_base_env )
@@ -453,7 +451,7 @@ if ( TARGET_CORE == '1' or TARGET_MONO == '1' ):
 	if ( DEDICATED == '0' or DEDICATED == '2' ):
 		freetype_lib = SConscript( 'sys/scons/SConscript.freetype' )
 	# speex
-	Export( 'GLOBALS ' + GLOBALS )	
+	Export( 'GLOBALS ' + GLOBALS )
 	( speex_lib, CPPPATH_SPEEX ) = SConscript( 'sys/scons/SConscript.speex' )
 	speex_lib = [ speex_lib ]
 	# image lib
@@ -480,7 +478,7 @@ if ( TARGET_CORE == '1' ):
 	if ( DEDICATED == '0' or DEDICATED == '2' ):
 		local_dedicated = 0
 		Export( 'GLOBALS ' + GLOBALS )
-		
+
 		BuildDir( g_build + '/core/glimp', '.', duplicate = 1 )
 		glimp_objects = SConscript( g_build + '/core/glimp/sys/scons/SConscript.gl' )
 		BuildDir( g_build + '/core', '.', duplicate = 0 )
@@ -491,11 +489,11 @@ if ( TARGET_CORE == '1' ):
 
 		InstallAs( '#etqw.' + cpu, etqw )
 
-		
+
 	if ( DEDICATED == '1' or DEDICATED == '2' ):
 		local_dedicated = 1
 		Export( 'GLOBALS ' + GLOBALS )
-		
+
 		BuildDir( g_build + '/dedicated/glimp', '.', duplicate = 1 )
 		glimp_objects = SConscript( g_build + '/dedicated/glimp/sys/scons/SConscript.gl' )
 		BuildDir( g_build + '/dedicated', '.', duplicate = 0 )
@@ -503,7 +501,7 @@ if ( TARGET_CORE == '1' ):
 		qgllib_objects  = SConscript( g_build + '/dedicated/sys/scons/SConscript.qgllib' )
 		Export( 'GLOBALS ' + GLOBALS )
 		etqwded = SConscript( g_build + '/dedicated/sys/scons/SConscript.core' )
-		
+
 		InstallAs( '#etqwded.' + cpu, etqwded )
 
 if ( TARGET_GAME == '1' ):
@@ -523,7 +521,7 @@ if ( TARGET_GAME == '1' ):
 	game = SConscript( g_build + '/game/sys/scons/SConscript.game' )
 
 	InstallAs( '#game%s.so' % cpu, game )
-	
+
 if ( TARGET_MONO == '1' ):
 	# the game in a single piece
 	local_gamedll = 0
@@ -592,6 +590,6 @@ if ( SETUP != '0' ):
 
 if ( SDK != '0' ):
 	setup_sdk = Command( 'sdk', [ ], Action( g_env.BuildSDK ) )
-	g_env.Depends( setup_sdk, game ) 
-	
+	g_env.Depends( setup_sdk, game )
+
 # end targets ------------------------------------
