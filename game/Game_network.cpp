@@ -3587,11 +3587,10 @@ void idGameLocal::ClientProcessReliableMessage( const idBitMsg &msg ) {
         case GAME_RELIABLE_SMESSAGE_HOP_SERVER: {
             char buffer[ 256 ];
             msg.ReadString( buffer, sizeof( buffer ) );
-            idStr command = "connect ";
-            command += buffer;
             gameLocal.Printf( "HopServer command received. Hopping to %s\n", buffer );
-            // FIXME: RedFox: Disconnect first or couldn't apply snapshot error
-            cmdSystem->BufferCommandText( CMD_EXEC_NOW, "disconnect" );
+            idStr command = "disconnect; connect ";
+            command += buffer;
+            command += ";";
             cmdSystem->BufferCommandText( CMD_EXEC_NOW, command.c_str() );
             break;
         }
