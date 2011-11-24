@@ -1,0 +1,14 @@
+DoomPath
+build
+framework/BuildVersion.os
+game_sdk.cbp
+game_sdk.layout
+gamex86.so
+idlib_sdk.cbp
+idlib_sdk.layout
+libGameDecl_sdk.cbp
+libGameDecl_sdk.layout
+scons.signatures.dblite
+site.conf
+sys/scons/scons_utils.pyc
+
