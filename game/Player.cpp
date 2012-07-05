@@ -1665,7 +1665,10 @@ void idPlayer::Spawn( void ) {
 		gameLocal.localPlayerProperties.UpdateTeam( team );
 		gameLocal.localPlayerProperties.SetClipIndex( 0 );
 		if ( !sdDemoManager::GetInstance().InPlayBack() && com_timeServer.GetInteger() <= 0 ) {
-			gameLocal.localPlayerProperties.GetLimboMenu()->Enable( true, true );
+// FORMIDO BEGIN
+            // We don't want the player to go into the limbo menu but have the server spawn the player
+			//gameLocal.localPlayerProperties.GetLimboMenu()->Enable( true, true );
+// FORMIDO END
 		}
 	}
 
