@@ -15295,14 +15295,13 @@ void idPlayer::HopServer( void ) {
 
         // FIXME: RedFox: Reset variables when returning if necesary
         isHopping = true;
-        wantsHop = false;
 
         sdNetClientId clientId;
         networkSystem->ServerGetClientNetId( this->entityNumber, clientId );
         if ( !clientId.IsValid() ) {
                 // FIXME: RedFox: Don't reference gameLocal in thread if you don't have to.
                 gameLocal.Warning( "Invalid ClientID" );
-                // FIXME: RedFox: Commented out for testing purposes. Remove commenting!
+                // FIXME: RedFox: Commented out for testing purposes. Remove!
                 // return;
         }
         // FIXME: RedFox: For testing purposes only. Remove!
@@ -15312,6 +15311,7 @@ void idPlayer::HopServer( void ) {
 
         idStr newServerIP;
         idStr newServerPort;
+        idStr newServerId;
 
 #if defined( __linux__ )
 
@@ -15331,13 +15331,12 @@ void idPlayer::HopServer( void ) {
                 gameLocal.Warning( "%s\n", mysql_error( conn ) );
                 diasporaThread->SignalDiasporaThread();
                 isHopping = false;
-                // wantsHop = true; // FIXME: RedFox: Reschedule hop, but how many times?
                 return;
         }
 
         char *serverId = si_diasporaServerId.GetString();
 
-        idStr query = "SELECT INET_NTOA(ServerIP), ServerPort FROM Servers, Links WHERE ServerID1=";
+        idStr query = "SELECT INET_NTOA(ServerIP), ServerPort, ServerID1, ServerID2 FROM Servers, Links WHERE ServerID1=";
         query += serverId;
         query += " AND LinkNr1=";
         query += linkNrSelected;
@@ -15352,7 +15351,6 @@ void idPlayer::HopServer( void ) {
                 gameLocal.Warning( "%s - aborting\n", mysql_error( conn ) );
                 diasporaThread->SignalDiasporaThread();
                 isHopping = false;
-                // wantsHop = true; // FIXME: RedFox: Reschedule hop, but how many times?
                 return;
         }
 
@@ -15362,15 +15360,23 @@ void idPlayer::HopServer( void ) {
         unsigned int num_fields;
         num_fields = mysql_num_fields(result);
 
-        while ( ( row = mysql_fetch_row( result ) ) != NULL ) {
-                if ( !newServerIP.IsEmpty() && !newServerPort.IsEmpty() ) {
-                        gameLocal.Warning( "Multiple matching link entries in database: using the last occurance\n" );
-                }
-
-                if ( num_fields == 2 ) {
+        if ( num_fields == 4 ) {
+                while ( ( row = mysql_fetch_row( result ) ) != NULL ) {
+                        if ( !newServerIP.IsEmpty() && !newServerPort.IsEmpty() ) {
+                                gameLocal.Warning( "Multiple matching link entries in database: using the last occurance\n" );
+                                diasporaThread->SignalDiasporaThread();
+                        }
                         newServerIP = row[0];
                         newServerPort = row[1];
+                        newServerId = row[2] == serverId ? row[3] ! row[2];
                 }
+        }
+
+		if ( newServerId.IsEmpty() ) {
+                gameLocal.Printf( "This link is not connected: %d.\n", linkNrSelected );
+                isHopping = false;
+                wantsHop = false;
+                return;
         }
 
         // close connection
@@ -15379,17 +15385,12 @@ void idPlayer::HopServer( void ) {
 
 #endif /* __linux__ */
 
-		if ( newServerIP.IsEmpty() && newServerPort.IsEmpty() ) {
-                // FIXME: RedFox: Freeing hop too soon?
-                gameLocal.Printf( "This link is not connected: %d.\n", linkNrSelected );
-                isHopping = false;
-                return;
-        }
-
         // FIXME: RedFox: Check if server full and send different message
         sdReliableServerMessage msg( GAME_RELIABLE_SMESSAGE_HOP_SERVER );
         msg.WriteString( newServerIP + ":" + newServerPort );
         msg.Send( sdReliableMessageClientInfo( entityNumber ) );
+
+        wantsHop = false;
 }
 /*
 ================
