@@ -15383,12 +15383,12 @@ void idPlayer::HopServer( void ) {
         mysql_free_result( result );
         mysql_close( conn );
 
-#endif /* __linux__ */
-
         // FIXME: RedFox: Check if server full and send different message
         sdReliableServerMessage msg( GAME_RELIABLE_SMESSAGE_HOP_SERVER );
         msg.WriteString( newServerIP + ":" + newServerPort );
         msg.Send( sdReliableMessageClientInfo( entityNumber ) );
+
+#endif /* __linux__ */
 
         wantsHop = false;
 }

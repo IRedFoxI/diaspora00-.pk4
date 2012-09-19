@@ -95,6 +95,7 @@ unsigned int rfDiasporaThread::Run( void *parm ) {
 
                 if ( !Terminating() ) {
 
+                        // FIXME: RedFox: Check if clients wanting hop left (added while in the loop) and re-run loop if necesary
                         for( i = 0; i < MAX_CLIENTS; i++ ) {
                                 player = gameLocal.GetClient( i );
 
