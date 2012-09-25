@@ -15302,6 +15302,7 @@ void idPlayer::HopServer( void ) {
                 // FIXME: RedFox: Don't reference gameLocal in thread if you don't have to.
                 gameLocal.Warning( "Invalid ClientID" );
                 // FIXME: RedFox: Commented out for testing purposes. Remove!
+                // isHopping = false;
                 // return;
         }
         // FIXME: RedFox: For testing purposes only. Remove!
@@ -15312,6 +15313,7 @@ void idPlayer::HopServer( void ) {
         idStr newServerIP;
         idStr newServerPort;
         idStr newServerId;
+        idStr newLinkNr;
 
 #if defined( __linux__ )
 
@@ -15336,7 +15338,7 @@ void idPlayer::HopServer( void ) {
 
         char *serverId = si_diasporaServerId.GetString();
 
-        idStr query = "SELECT INET_NTOA(ServerIP), ServerPort, ServerID1, ServerID2 FROM Servers, Links WHERE ServerID1=";
+        idStr query = "SELECT INET_NTOA(ServerIP), ServerPort, ServerID, ServerID1, LinkNr1, LinkNr2 FROM Servers, Links WHERE ServerID1=";
         query += serverId;
         query += " AND LinkNr1=";
         query += linkNrSelected;
@@ -15360,7 +15362,7 @@ void idPlayer::HopServer( void ) {
         unsigned int num_fields;
         num_fields = mysql_num_fields(result);
 
-        if ( num_fields == 4 ) {
+        if ( num_fields == 6 ) {
                 while ( ( row = mysql_fetch_row( result ) ) != NULL ) {
                         if ( !newServerIP.IsEmpty() && !newServerPort.IsEmpty() ) {
                                 gameLocal.Warning( "Multiple matching link entries in database: using the last occurance\n" );
@@ -15368,7 +15370,8 @@ void idPlayer::HopServer( void ) {
                         }
                         newServerIP = row[0];
                         newServerPort = row[1];
-                        newServerId = row[2] == serverId ? row[3] ! row[2];
+                        newServerId = row[2];
+                        newLinkNr = strcmp( serverId, row[3] ) != 0 ? row[4] : row[5];
                 }
         }
 
@@ -15379,7 +15382,24 @@ void idPlayer::HopServer( void ) {
                 return;
         }
 
-        // close connection
+        query = "UPDATE Players SET ServerID=";
+        query += newServerId;
+        query += ", LinkNr=";
+        query += newLinkNr;
+        query += "WHERE ClientID=";
+        query += char( ( (uint64_t)clientId.id[0] << 32 ) | clientId.id[1] );
+
+         // send SQL query
+        if ( mysql_query( conn, query.c_str() ) ) {
+                gameLocal.Warning( "%s - aborting\n", mysql_error( conn ) );
+                diasporaThread->SignalDiasporaThread();
+                isHopping = false;
+                return;
+        }
+
+        // FIXME: RedFox: Check if updated correctly?
+
+       // close connection
         mysql_free_result( result );
         mysql_close( conn );
 
